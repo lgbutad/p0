@@ -3,6 +3,7 @@
 #include "stdio.h"
 #include <stdlib.h>
 #include "windows.h"
+#include <list>
 
 const int  LEVEL_WIDTH       = 30;
 const int  ENEMY_CHANCE      = 100;
@@ -20,6 +21,11 @@ const char KEY_LEFT          = 'a';
 const char KEY_RIGHT         = 'd';
 const char KEY_SHOOT_LEFT    = 'k';
 const char KEY_SHOOT_RIGHT   = 'l';
+
+struct Bullet {
+	int pos = -1;
+	char symbol = 0;
+};
 
 void destroyEnemy(int &enemy_pos) {
 	enemy_pos = -1;
@@ -75,28 +81,29 @@ void enemyUpdate(int &enemy_pos, int player_pos) {
 	}
 }
 
-void bulletUpdate(int &bullet_pos, char bullet_char) {
-	if (bullet_pos != -1) {
-		if (bullet_char == CHAR_SHOOT_LEFT) {
-			if (bullet_pos == 0) {
-				bullet_pos = -1;
+void bulletUpdate(Bullet bullet) {
+	if (bullet.pos != -1) {
+		if (bullet.symbol == CHAR_SHOOT_LEFT) {
+			if (bullet.pos == 0) {
+				bullet.pos = -1;
 			}
 			else {
-				bullet_pos--;
+				bullet.pos--;
 			}
 		}
-		else if (bullet_char == CHAR_SHOOT_RIGHT) {
-			if (bullet_pos == LEVEL_WIDTH - 1) {
-				bullet_pos = -1;
+		else if (bullet.symbol == CHAR_SHOOT_RIGHT) {
+			if (bullet.pos == LEVEL_WIDTH - 1) {
+				bullet.pos = -1;
 			}
 			else {
-				bullet_pos++;
+				bullet.pos++;
 			}
 		}
 	}
 }
 
-void manageInput(char &key, int &player_pos, int &bullet_pos, char &bullet_char) {
+//void manageInput(char &key, int &player_pos, int &bullet_pos, char &bullet_char) {
+void manageInput(char &key, int &player_pos, std::list<Bullet> &bullets) {
 	switch (key) {
 	case KEY_LEFT:
 		if (player_pos != 0) {
@@ -109,15 +116,23 @@ void manageInput(char &key, int &player_pos, int &bullet_pos, char &bullet_char)
 		}
 		break;
 	case KEY_SHOOT_LEFT:
-		if (bullet_pos == -1 && player_pos != 0) {
+		/*if (bullet_pos == -1 && player_pos != 0) {
 			bullet_pos = player_pos - 1;
 			bullet_char = CHAR_SHOOT_LEFT;
+		}*/
+		if (player_pos != 0) {
+			Bullet bullet{ player_pos - 1, CHAR_SHOOT_LEFT };
+			bullets.push_back(bullet);
 		}
 		break;
 	case KEY_SHOOT_RIGHT:
-		if (bullet_pos == -1 && player_pos != LEVEL_WIDTH - 1) {
+		/*if (bullet_pos == -1 && player_pos != LEVEL_WIDTH - 1) {
 			bullet_pos = player_pos + 1;
 			bullet_char = CHAR_SHOOT_RIGHT;
+		}*/
+		if (player_pos != LEVEL_WIDTH - 1) {
+			Bullet bullet{ player_pos + 1, CHAR_SHOOT_RIGHT };
+			bullets.push_back(bullet);
 		}
 		break;
 	default:
@@ -147,22 +162,19 @@ void checkPlayerBonusCollision(int &player_pos, int &bonus_pos, int &player_scor
 	}
 }
 
-void printGame(int player_pos, int enemy_pos, int bullet_pos, int bonus_pos, int bullet_char, int player_score, int player_lifes) {
+void printGame(int player_pos, int enemy_pos, std::list<Bullet> &bullets, int bonus_pos, int player_score, int player_lifes) {
 	for (int i = 0; i < LEVEL_WIDTH; ++i) {
 		if (i == player_pos) {
 			printf("%c", CHAR_PLAYER);
-		}
-		else if (i == enemy_pos) {
-			printf("%c", CHAR_ENEMY);
-		}
-		else if (i == bullet_pos) {
-			printf("%c", bullet_char);
-		}
+		}				
 		else if (i == bonus_pos) {
 			printf("%c", CHAR_BONUS);
 		}
 		else {
 			printf("%c", CHAR_FLOOR);
+		}
+		for (auto it = bullets.begin(); it != bullets.end(); ++it) {
+			if ((*it).pos == i) printf("%c", (*it).symbol);
 		}
 	}
 
@@ -179,7 +191,9 @@ int main() {
 	int player_score = 0;
 	int player_lifes = INIT_PLAYER_LIFES;	
 	char bullet_char = 0;
-	char key         = 0;	
+	char key         = 0;
+
+	std::list<Bullet> bullets;
 
 	printf("\n\n\n");
 
@@ -196,9 +210,13 @@ int main() {
 
 		checkPlayerEnemyCollision(player_pos, player_lifes, enemy_pos);
 
-		bulletUpdate(bullet_pos, bullet_char);
+		//bulletUpdate(bullet_pos, bullet_char);
+		for (auto it = bullets.begin(); it != bullets.end(); ++it) {
+			bulletUpdate((*it));
+		}
 
-		manageInput(key, player_pos, bullet_pos, bullet_char);		
+		//manageInput(key, player_pos, bullet_pos, bullet_char);		
+		manageInput(key, player_pos, bullets);
 
 		checkBulletEnemyCollision(bullet_pos, bullet_char, enemy_pos);
 
@@ -213,7 +231,8 @@ int main() {
 		generateBonus(bonus_pos);		
 
 		// Print Game.
-		printGame(player_pos, enemy_pos, bullet_pos, bonus_pos, bullet_char, player_score, player_lifes);
+		//printGame(player_pos, enemy_pos, bullet_pos, bonus_pos, bullet_char, player_score, player_lifes);
+		printGame(player_pos, enemy_pos, bullets, bonus_pos, player_score, player_lifes);
 
 		Sleep(200);
 	}
