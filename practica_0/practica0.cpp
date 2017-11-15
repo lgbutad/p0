@@ -6,7 +6,7 @@
 #include <list>
 
 const int  LEVEL_WIDTH       = 30;
-const int  ENEMY_CHANCE      = 100;
+const int  ENEMY_CHANCE      = 5;
 const int  BONUS_CHANCE      = 100;
 const int  BONUS_SCORE       = 100;
 const int  INIT_PLAYER_LIFES = 3;
@@ -27,38 +27,38 @@ struct Bullet {
 	char symbol = 0;
 };
 
-void destroyEnemy(int &enemy_pos) {
-	enemy_pos = -1;
-}
+std::list<int> enemy_positions;
+std::list<Bullet> bullets;
 
-void destroyBullet(int &bullet_pos, char &bullet_char) {
-	bullet_pos = -1;
-	bullet_char = 0;
-}
+int  player_pos   = LEVEL_WIDTH / 2;
+int  player_score = 0;
+int  player_lifes = INIT_PLAYER_LIFES;
+int  bonus_pos    = -1;
+char key          = 0;
 
 void destroyBonus(int &bonus_pos) {
 	bonus_pos = -1;
 }
 
-void destroyPlayer(int &player_pos, int &player_lifes) {
+void destroyPlayer() {
 	player_pos = LEVEL_WIDTH / 2;
 	player_lifes--;	
 	Sleep(400);
 }
 
-void generateEnemy(int &enemy_pos) {	
-	if (enemy_pos == -1) {
-		int roll = rand() % 100 + 1;
-		if (roll <= ENEMY_CHANCE) {
-			int s = rand() % 2;
-			if (s == 0) {
-				enemy_pos = 0;
-			}
-			else {
-				enemy_pos = LEVEL_WIDTH - 1;
-			}
+void generateEnemy() {		
+	int roll = rand() % 100 + 1;
+	if (roll <= ENEMY_CHANCE) {
+		int s = rand() % 2;
+		int enemy_pos = -1;
+		if (s == 0) {
+			enemy_pos = 0;
 		}
-	}
+		else {
+			enemy_pos = LEVEL_WIDTH - 1;
+		}
+		enemy_positions.push_back(enemy_pos);
+	}	
 }
 
 void generateBonus(int &bonus_pos) {
@@ -81,9 +81,9 @@ void enemyUpdate(int &enemy_pos, int player_pos) {
 	}
 }
 
-void bulletUpdate(Bullet bullet) {
+void bulletUpdate(Bullet &bullet) {	
 	if (bullet.pos != -1) {
-		if (bullet.symbol == CHAR_SHOOT_LEFT) {
+		if (bullet.symbol == CHAR_SHOOT_LEFT) {			
 			if (bullet.pos == 0) {
 				bullet.pos = -1;
 			}
@@ -102,7 +102,6 @@ void bulletUpdate(Bullet bullet) {
 	}
 }
 
-//void manageInput(char &key, int &player_pos, int &bullet_pos, char &bullet_char) {
 void manageInput(char &key, int &player_pos, std::list<Bullet> &bullets) {
 	switch (key) {
 	case KEY_LEFT:
@@ -115,21 +114,13 @@ void manageInput(char &key, int &player_pos, std::list<Bullet> &bullets) {
 			player_pos++;
 		}
 		break;
-	case KEY_SHOOT_LEFT:
-		/*if (bullet_pos == -1 && player_pos != 0) {
-			bullet_pos = player_pos - 1;
-			bullet_char = CHAR_SHOOT_LEFT;
-		}*/
+	case KEY_SHOOT_LEFT:		
 		if (player_pos != 0) {
 			Bullet bullet{ player_pos - 1, CHAR_SHOOT_LEFT };
 			bullets.push_back(bullet);
 		}
 		break;
-	case KEY_SHOOT_RIGHT:
-		/*if (bullet_pos == -1 && player_pos != LEVEL_WIDTH - 1) {
-			bullet_pos = player_pos + 1;
-			bullet_char = CHAR_SHOOT_RIGHT;
-		}*/
+	case KEY_SHOOT_RIGHT:		
 		if (player_pos != LEVEL_WIDTH - 1) {
 			Bullet bullet{ player_pos + 1, CHAR_SHOOT_RIGHT };
 			bullets.push_back(bullet);
@@ -141,17 +132,36 @@ void manageInput(char &key, int &player_pos, std::list<Bullet> &bullets) {
 	key = 0;
 }
 
-void checkBulletEnemyCollision(int &bullet_pos, char &bullet_char, int &enemy_pos) {
-	if (bullet_pos == enemy_pos) {
-		destroyEnemy(enemy_pos);
-		destroyBullet(bullet_pos, bullet_char);
-	}
+void checkBulletEnemyCollision() {
+	for (auto it_b = bullets.begin(); it_b != bullets.end();) {
+		bool destroy_bullet = false;
+		for (auto it_e = enemy_positions.begin(); it_e != enemy_positions.end();) {
+			if ((*it_b).pos == *it_e) {				
+				it_e = enemy_positions.erase(it_e);				
+				destroy_bullet = true;
+			}
+			else {
+				++it_e;
+			}
+		}
+		if (destroy_bullet) {
+			it_b = bullets.erase(it_b);			
+		}
+		else {
+			++it_b;
+		}
+	}	
 }
 
-void checkPlayerEnemyCollision(int &player_pos, int &player_lifes, int &enemy_pos) {
-	if (player_pos == enemy_pos) {
-		destroyPlayer(player_pos, player_lifes);
-		destroyEnemy(enemy_pos);
+void checkPlayerEnemyCollision() {
+	for (auto it_e = enemy_positions.begin(); it_e != enemy_positions.end();) {
+		if (player_pos == *it_e) {			
+			destroyPlayer();			
+			it_e = enemy_positions.erase(it_e);
+		}
+		else {
+			++it_e;
+		}
 	}
 }
 
@@ -162,7 +172,8 @@ void checkPlayerBonusCollision(int &player_pos, int &bonus_pos, int &player_scor
 	}
 }
 
-void printGame(int player_pos, int enemy_pos, std::list<Bullet> &bullets, int bonus_pos, int player_score, int player_lifes) {
+void printGame() {
+	
 	for (int i = 0; i < LEVEL_WIDTH; ++i) {
 		if (i == player_pos) {
 			printf("%c", CHAR_PLAYER);
@@ -171,11 +182,23 @@ void printGame(int player_pos, int enemy_pos, std::list<Bullet> &bullets, int bo
 			printf("%c", CHAR_BONUS);
 		}
 		else {
-			printf("%c", CHAR_FLOOR);
-		}
-		for (auto it = bullets.begin(); it != bullets.end(); ++it) {
-			if ((*it).pos == i) printf("%c", (*it).symbol);
-		}
+			bool print = false;
+			for (auto it = bullets.begin(); it != bullets.end(); ++it) {
+				if ((*it).pos == i) {
+					printf("%c", (*it).symbol);
+					print = true;
+				}
+			}
+			for (auto it = enemy_positions.begin(); it != enemy_positions.end(); ++it) {
+				if ((*it) == i) {
+					printf("%c", CHAR_ENEMY);
+					print = true;
+				}
+			}
+			if (!print) {
+				printf("%c", CHAR_FLOOR);
+			}			
+		}		
 	}
 
 	printf("\t%s%d\t%s%d", "SCORE: ", player_score, "LIVES: ", player_lifes);
@@ -184,16 +207,6 @@ void printGame(int player_pos, int enemy_pos, std::list<Bullet> &bullets, int bo
 }
 
 int main() {
-	int player_pos   = LEVEL_WIDTH / 2;
-	int bullet_pos   = -1;
-	int enemy_pos    = -1;
-	int bonus_pos    = -1;
-	int player_score = 0;
-	int player_lifes = INIT_PLAYER_LIFES;	
-	char bullet_char = 0;
-	char key         = 0;
-
-	std::list<Bullet> bullets;
 
 	printf("\n\n\n");
 
@@ -206,9 +219,9 @@ int main() {
 
 		// Update game state.
 
-		checkBulletEnemyCollision(bullet_pos, bullet_char, enemy_pos);
+		checkBulletEnemyCollision();
 
-		checkPlayerEnemyCollision(player_pos, player_lifes, enemy_pos);
+		checkPlayerEnemyCollision();
 
 		//bulletUpdate(bullet_pos, bullet_char);
 		for (auto it = bullets.begin(); it != bullets.end(); ++it) {
@@ -218,21 +231,23 @@ int main() {
 		//manageInput(key, player_pos, bullet_pos, bullet_char);		
 		manageInput(key, player_pos, bullets);
 
-		checkBulletEnemyCollision(bullet_pos, bullet_char, enemy_pos);
+		checkBulletEnemyCollision();
 
-		checkPlayerEnemyCollision(player_pos, player_lifes, enemy_pos);
+		checkPlayerEnemyCollision();
 
 		checkPlayerBonusCollision(player_pos, bonus_pos, player_score);
 
-		enemyUpdate(enemy_pos, player_pos);		
+		for (auto it = enemy_positions.begin(); it != enemy_positions.end(); ++it) {
+			enemyUpdate((*it), player_pos);
+		}
 
-		generateEnemy(enemy_pos);
+		generateEnemy();
 
 		generateBonus(bonus_pos);		
 
 		// Print Game.
 		//printGame(player_pos, enemy_pos, bullet_pos, bonus_pos, bullet_char, player_score, player_lifes);
-		printGame(player_pos, enemy_pos, bullets, bonus_pos, player_score, player_lifes);
+		printGame();
 
 		Sleep(200);
 	}
