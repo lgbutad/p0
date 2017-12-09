@@ -1,8 +1,9 @@
 #include "stdafx.h"
 #include "conio.h"
 #include "stdio.h"
-#include <stdlib.h>
+#include "stdlib.h"
 #include "windows.h"
+
 #include <list>
 
 #define LEVEL_WIDTH        30
@@ -29,7 +30,7 @@
 #define KEY_SHOOT_RIGHT_2  'L'
 
 struct Bullet {
-	int pos = -1;
+	int  pos    = -1;
 	char symbol = 0;
 };
 
@@ -42,7 +43,42 @@ int player_lifes = PLAYER_LIFES;
 int bonus_pos    = -1;
 int key          = 0;
 
-void destroyBonus(int &bonus_pos) {
+// Input manager.
+void manageInput() {
+	switch (key) {
+	case KEY_LEFT_1:
+	case KEY_LEFT_2:
+		if (player_pos != 0) {
+			player_pos--;
+		}
+		break;
+	case KEY_RIGHT_1:
+	case KEY_RIGHT_2:
+		if (player_pos != LEVEL_WIDTH - 1) {
+			player_pos++;
+		}
+		break;
+	case KEY_SHOOT_LEFT_1:
+	case KEY_SHOOT_LEFT_2:
+		if (player_pos != 0) {
+			Bullet bullet{ player_pos - 1, SYMBOL_SHOOT_LEFT };
+			bullets.push_back(bullet);
+		}
+		break;
+	case KEY_SHOOT_RIGHT_1:
+	case KEY_SHOOT_RIGHT_2:
+		if (player_pos != LEVEL_WIDTH - 1) {
+			Bullet bullet{ player_pos + 1, SYMBOL_SHOOT_RIGHT };
+			bullets.push_back(bullet);
+		}
+		break;
+	default:
+		break;
+	}
+}
+
+// Destroy functions.
+void destroyBonus() {
 	bonus_pos = -1;
 }
 
@@ -52,6 +88,7 @@ void destroyPlayer() {
 	Sleep(400);
 }
 
+// Generators.
 void generateEnemy() {		
 	int roll = rand() % 100 + 1;
 	if (roll <= ENEMY_CHANCE) {
@@ -76,6 +113,7 @@ void generateBonus() {
 	}
 }
 
+// Update functions.
 void enemyUpdate(int &enemy_pos) {
 	if (enemy_pos != -1) {
 		if (player_pos > enemy_pos) {
@@ -108,39 +146,7 @@ void bulletUpdate(Bullet &bullet) {
 	}
 }
 
-void manageInput() {
-	switch (key) {
-	case KEY_LEFT_1:
-	case KEY_LEFT_2:
-		if (player_pos != 0) {
-			player_pos--;
-		}
-		break;
-	case KEY_RIGHT_1:
-	case KEY_RIGHT_2:
-		if (player_pos != LEVEL_WIDTH - 1) {
-			player_pos++;
-		}
-		break;
-	case KEY_SHOOT_LEFT_1:		
-	case KEY_SHOOT_LEFT_2:
-		if (player_pos != 0) {
-			Bullet bullet{ player_pos - 1, SYMBOL_SHOOT_LEFT };
-			bullets.push_back(bullet);
-		}
-		break;
-	case KEY_SHOOT_RIGHT_1:		
-	case KEY_SHOOT_RIGHT_2:
-		if (player_pos != LEVEL_WIDTH - 1) {
-			Bullet bullet{ player_pos + 1, SYMBOL_SHOOT_RIGHT };
-			bullets.push_back(bullet);
-		}
-		break;
-	default:
-		break;
-	}	
-}
-
+// Collision functions.
 void checkBulletEnemyCollision() {
 	for (auto it_b = bullets.begin(); it_b != bullets.end();) {
 		bool destroy_bullet = false;
@@ -176,11 +182,12 @@ void checkPlayerEnemyCollision() {
 
 void checkPlayerBonusCollision() {
 	if (player_pos == bonus_pos) {
-		destroyBonus(bonus_pos);
+		destroyBonus();
 		player_score += BONUS_SCORE;
 	}
 }
 
+// Print functions.
 void printGame() {	
 	for (int i = 0; i < LEVEL_WIDTH; ++i) {
 		if (i == player_pos) {
@@ -219,38 +226,30 @@ int main() {
 	printf("\n\n\n");
 
 	while (key != KEY_ESC && player_lifes > 0) {
-		key = 0;
 		// Get input.		
+		key = 0;		
 		if (_kbhit()) {
 			key = _getch();
 		}
 
 		// Update game state.
-
 		checkBulletEnemyCollision();
-
 		checkPlayerEnemyCollision();
 
-		for (auto it = bullets.begin(); it != bullets.end(); ++it) {
+		for (auto it = bullets.begin(); it != bullets.end(); ++it)
 			bulletUpdate(*it);
-		}
 
 		manageInput();
-
 		checkBulletEnemyCollision();
-
 		checkPlayerEnemyCollision();
-
 		checkPlayerBonusCollision();
 
-		for (auto it = enemy_positions.begin(); it != enemy_positions.end(); ++it) {
-			enemyUpdate(*it);
-		}
+		for (auto it = enemy_positions.begin(); it != enemy_positions.end(); ++it)
+			enemyUpdate(*it);		
 
 		generateEnemy();
-
-		generateBonus();		
-
+		generateBonus();
+		
 		// Print Game.
 		printGame();
 
@@ -259,4 +258,3 @@ int main() {
 
 	return 0;
 }
-
