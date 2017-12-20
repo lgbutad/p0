@@ -34,7 +34,7 @@ struct Bullet {
 	char symbol = 0;
 };
 
-std::list<int> enemy_positions;
+std::list<int>    enemy_positions;
 std::list<Bullet> bullets;
 
 int player_pos   = LEVEL_WIDTH / 2;
@@ -89,7 +89,7 @@ void destroyPlayer() {
 }
 
 // Generators.
-void generateEnemy() {		
+void generateEnemy() {
 	int roll = rand() % 100 + 1;
 	if (roll <= ENEMY_CHANCE) {
 		int s = rand() % 2;
@@ -101,14 +101,14 @@ void generateEnemy() {
 			enemy_pos = LEVEL_WIDTH - 1;
 		}
 		enemy_positions.push_back(enemy_pos);
-	}	
+	}
 }
 
 void generateBonus() {
 	if (bonus_pos == -1) {
 		int roll = rand() % 100 + 1;
 		if (roll <= BONUS_CHANCE) {
-			bonus_pos = rand() % LEVEL_WIDTH;			
+			bonus_pos = rand() % LEVEL_WIDTH;
 		}
 	}
 }
@@ -125,9 +125,9 @@ void enemyUpdate(int &enemy_pos) {
 	}
 }
 
-void bulletUpdate(Bullet &bullet) {	
+void bulletUpdate(Bullet &bullet) {
 	if (bullet.pos != -1) {
-		if (bullet.symbol == SYMBOL_SHOOT_LEFT) {			
+		if (bullet.symbol == SYMBOL_SHOOT_LEFT) {
 			if (bullet.pos == 0) {
 				bullet.pos = -1;
 			}
@@ -151,8 +151,8 @@ void checkBulletEnemyCollision() {
 	for (auto it_b = bullets.begin(); it_b != bullets.end();) {
 		bool destroy_bullet = false;
 		for (auto it_e = enemy_positions.begin(); it_e != enemy_positions.end();) {
-			if ((*it_b).pos == *it_e) {				
-				it_e = enemy_positions.erase(it_e);				
+			if ((*it_b).pos == *it_e) {
+				it_e = enemy_positions.erase(it_e);
 				destroy_bullet = true;
 			}
 			else {
@@ -160,18 +160,18 @@ void checkBulletEnemyCollision() {
 			}
 		}
 		if (destroy_bullet) {
-			it_b = bullets.erase(it_b);			
+			it_b = bullets.erase(it_b);
 		}
 		else {
 			++it_b;
 		}
-	}	
+	}
 }
 
 void checkPlayerEnemyCollision() {
 	for (auto it_e = enemy_positions.begin(); it_e != enemy_positions.end();) {
-		if (player_pos == *it_e) {			
-			destroyPlayer();			
+		if (player_pos == *it_e) {
+			destroyPlayer();
 			it_e = enemy_positions.erase(it_e);
 		}
 		else {
@@ -188,11 +188,11 @@ void checkPlayerBonusCollision() {
 }
 
 // Print functions.
-void printGame() {	
+void printGame() {
 	for (int i = 0; i < LEVEL_WIDTH; ++i) {
 		if (i == player_pos) {
 			printf("%c", SYMBOL_PLAYER);
-		}				
+		}
 		else if (i == bonus_pos) {
 			printf("%c", SYMBOL_BONUS);
 		}
@@ -212,8 +212,8 @@ void printGame() {
 			}
 			if (!print) {
 				printf("%c", SYMBOL_FLOOR);
-			}			
-		}		
+			}
+		}
 	}
 
 	printf("\t%s%d\t%s%d", "SCORE: ", player_score, "LIVES: ", player_lifes);
@@ -226,8 +226,8 @@ int main() {
 	printf("\n\n\n");
 
 	while (key != KEY_ESC && player_lifes > 0) {
-		// Get input.		
-		key = 0;		
+		// Get input.
+		key = 0;
 		if (_kbhit()) {
 			key = _getch();
 		}
@@ -245,7 +245,7 @@ int main() {
 		checkPlayerBonusCollision();
 
 		for (auto it = enemy_positions.begin(); it != enemy_positions.end(); ++it)
-			enemyUpdate(*it);		
+			enemyUpdate(*it);
 
 		generateEnemy();
 		generateBonus();
